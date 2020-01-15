@@ -28,9 +28,17 @@ def linux_cmd(cmd):
     # capture output and send to stdout.
     # See https://docs.python.org/3/library/subprocess.html
     current_user = subprocess.run(cmd.split(), stdout=subprocess.PIPE)
+    # stdout is a byte object.
     return current_user.stdout
 
-
+# usage example
 if __name__ == '__main__':
     w = linux_cmd("id cyruslab")
+    # convert from byte to string.
+    print(w.decode('utf-8'))
+
+    w = linux_cmd("ls -lah")
+    print(w.decode('utf-8'))
+
+    w= linux_cmd("whoami")
     print(w.decode('utf-8'))
