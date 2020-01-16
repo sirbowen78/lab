@@ -41,6 +41,13 @@ class AsaObject(Resource):
 
     # post method
     def post(self, obj_name):
+        # firewall object has to be unique.
+        # if firewall object ip address has to be modified then should call a put method.
+        # put method is currently not implemented.
+        if next(filter(lambda x: x['name'] == obj_name, fwobjs), None):
+            return {
+                "message": f"Firewall object {obj_name} already exist."
+            }, 400
         # read the json body submitted from the client such as curl, postman or insomnia.
         # request.get_json only parse the json body, if the body is not json an exception is thrown.
         # silent=True will prevent exception from happening, invalid json can still be posted but
