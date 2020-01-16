@@ -20,7 +20,7 @@ if __name__ == '__main__':
     print("Original list of numbers:")
     print(numbers)
     # filter takes in the function and iterables: tuple, set, list as arguments.
-    # the first argument only requires to pass in the function name with the ().
+    # the first argument only requires to pass in the function name without the ().
     # the first argument is a function that does the evaluation of True or False.
     # filter(is_prime, numbers) is the same as below:
     # for num in numbers:
