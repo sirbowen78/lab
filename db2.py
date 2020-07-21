@@ -2,7 +2,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, create_engine, String
 from sqlalchemy_utils import database_exists, create_database
 
-url = "mysql+pymysql://cyruslab:121278@192.168.1.254/test"
+url = "mysql+pymysql://username:password@192.168.1.254/test"
 engine = create_engine(url, echo=True)
 if not database_exists(engine.url):
     create_database(engine.url)
