@@ -112,6 +112,33 @@ def unpack(extract_from, extract_to):
     logger.info(f"Decompressed {extract_from}, please find extracted item in {extract_to}.")
 
 
+def gecko_finder(base="C:\\"):
+    """
+    If at least one geckodriver.exe is found return the abs path.
+    :param base: path to search from.
+    :return: If found return abs path else None
+    """
+    for root, dirs, filenames in os.walk(base):
+        if "geckodriver.exe" in filenames:
+            return os.path.join(root, "geckodriver.exe")
+    return
+
+
 if __name__ == "__main__":
-    save_path = download_gecko_for_win(path="c:\\tmp\\testing")
-    unpack(save_path, "c:\\tmp\\webdriver")
+    # This part demonstrates its usefulness.
+    found = gecko_finder()
+    if not found:
+        logger.info("geckodriver.exe not found, download now.")
+        save_path = download_gecko_for_win(path="c:\\tmp\\testing")
+        unpack(save_path, "c:\\tmp\\webdriver")
+        found = gecko_finder()
+
+    from selenium import webdriver
+    logger.info(f"Use {found} to test.")
+    driver = webdriver.Firefox(executable_path=found)
+    driver.get("https://the-internet.herokuapp.com/")
+    if not os.path.exists("C:\\tmp"):
+        os.makedirs("C:\\tmp", exist_ok=True)
+    driver.save_screenshot("C:\\tmp\\success.png")
+    logger.info("screenshot saved.")
+    driver.close()
