@@ -50,3 +50,4 @@ if __name__ == "__main__":
     driver = webdriver.Firefox(executable_path=found)
     driver.get("https://github.com/mozilla/geckodriver/releases/latest")
     driver.save_screenshot("success.png")
+    driver.close()
