@@ -35,16 +35,16 @@ chunk_size = 1024
 # Use the requests.get with stream enable, with iter_content by chunk size,
 # the contents will be written to the dl_path.
 # tqdm tracks the progress by progress.update(datasize)
-with requests.get(url, stream=True) as r:
-    with open(dl_path, "wb") as f, tqdm(
-            unit="B",  # unit string to be displayed.
-            unit_scale=True,  # let tqdm to determine the scale in kilo, mega..etc.
-            unit_divisor=1024,  # is used when unit_scale is true
-            total=filesize,  # the total iteration.
-            file=sys.stdout,  # default goes to stderr, this is the display on console.
-    ) as progress:
-        for chunk in r.iter_content(chunk_size=chunk_size):
-            # download the file chunk by chunk
-            datasize = f.write(chunk)
-            # on each chunk update the progress bar.
-            progress.update(datasize)
+with requests.get(url, stream=True) as r, open(dl_path, "wb") as f, tqdm(
+        unit="B",  # unit string to be displayed.
+        unit_scale=True,  # let tqdm to determine the scale in kilo, mega..etc.
+        unit_divisor=1024,  # is used when unit_scale is true
+        total=filesize,  # the total iteration.
+        file=sys.stdout,  # default goes to stderr, this is the display on console.
+        desc=filename  # prefix to be displayed on progress bar.
+) as progress:
+    for chunk in r.iter_content(chunk_size=chunk_size):
+        # download the file chunk by chunk
+        datasize = f.write(chunk)
+        # on each chunk update the progress bar.
+        progress.update(datasize)
