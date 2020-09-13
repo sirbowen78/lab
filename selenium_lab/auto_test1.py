@@ -43,11 +43,13 @@ def convert_xls_to_dict(xls_file):
     xls = ExcelFile(xls_file)
     return xls.parse(xls.sheet_names[0]).to_dict()
 
+
 def get_email_from_df(dataframe):
     if "email" in dataframe.keys():
         return dataframe["email"][0]
     raise KeyError("The key email is not in data, make sure you have used the correct excel template to fill your "
                    "details.")
+
 
 class WebAppTester:
     def __init__(self, url="http://automationpractice.com/index.php",
@@ -127,8 +129,8 @@ class WebAppTester:
         sleep(8)
         driver.close()
 
+
 if __name__ == "__main__":
-    personal_details = {}
     xls = find_file(base_path="C:\\", filename="personal.xlsx")
     data_frame = convert_xls_to_dict(xls)
 
