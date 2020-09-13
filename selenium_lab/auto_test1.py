@@ -15,7 +15,39 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as condition
 from time import sleep
 import calendar
+from pathlib import Path
+import os
+from pandas import ExcelFile
 
+
+def find_file(base_path=str(Path.home()), filename=None):
+    for root, dirs, name in os.walk(base_path, topdown=True):
+        if filename in name:
+            return os.path.join(root, filename)
+    raise FileNotFoundError(f"{filename} does not exist in {base_path}")
+
+
+def process_details(data):
+    details = dict()
+    tmp_data_bucket = data.copy()
+    if "email" in tmp_data_bucket.keys():
+        tmp_data_bucket.pop("email")
+    for k, v in tmp_data_bucket.items():
+        details.update(
+            {k: v[0]}
+        )
+    return details
+
+
+def convert_xls_to_dict(xls_file):
+    xls = ExcelFile(xls_file)
+    return xls.parse(xls.sheet_names[0]).to_dict()
+
+def get_email_from_df(dataframe):
+    if "email" in dataframe.keys():
+        return dataframe["email"][0]
+    raise KeyError("The key email is not in data, make sure you have used the correct excel template to fill your "
+                   "details.")
 
 class WebAppTester:
     def __init__(self, url="http://automationpractice.com/index.php",
@@ -47,7 +79,8 @@ class WebAppTester:
         driver.find_element_by_xpath(
             '/html/body/div/div[2]/div/div[3]/div/div/div[1]/form/div/div[3]/button/span').click()
 
-        # Reference radio button https://stackoverflow.com/questions/21322116/using-selenium-in-python-to-click-select-a-radio-button
+        # Reference radio button:
+        # https://stackoverflow.com/questions/21322116/using-selenium-in-python-to-click-select-a-radio-button
         sleep(2)
         if personal_details["gender"].lower() == "mr":
             driver.find_element_by_css_selector('#id_gender1').click()
@@ -58,11 +91,15 @@ class WebAppTester:
         driver.find_element_by_xpath('//*[@id="passwd"]').send_keys(personal_details["password"])
         driver.find_element_by_css_selector(f'#days > option:nth-child({int(personal_details["day"]) + 1})').click()
 
-        # Reference for calendar conversion from month name to number. https://stackoverflow.com/questions/3418050/month-name-to-month-number-and-vice-versa-in-python
+        # Reference for calendar conversion from month name to number.
+        # https://stackoverflow.com/questions/3418050/month-name-to-month-number-and-vice-versa-in-python
         driver.find_element_by_css_selector(
             f'#months > option:nth-child({list(calendar.month_name).index(personal_details["month"].capitalize()) + 1})').click()
 
-        # Reference for dropdox selection: https://intellipaat.com/community/4266/how-to-select-a-drop-down-menu-option-value-with-selenium-python
+        # Reference for dropdox selection:
+        # https://intellipaat.com/community/4266/how-to-select-a-drop-down-menu-option-value-with-selenium-python
+        if isinstance(details["year"], int):
+            personal_details["year"] = str(personal_details["year"])
         year_dropdown = Select(driver.find_element_by_xpath('//*[@id="years"]'))
         year_dropdown.select_by_value(personal_details["year"])
 
@@ -90,23 +127,13 @@ class WebAppTester:
 
 
 if __name__ == "__main__":
-    test1 = WebAppTester()
-    personal_details = {
-        "gender": "mr",
-        "firstname": "testfirst",
-        "lastname": "testsecond",
-        "password": "12345",
-        "day": "10",
-        "month": "december",
-        "year": "1965",
-        "newsletter": True,
-        "optin": True,
-        "company": "test company",
-        "address1": "false address",
-        "city": "AZ",
-        "state": "arizona",
-        "postcode": "12345",
-        "phone_mobile": "123456787",
-        "address_ref": "singapore"
-    }
-    test1.register(email="cyruslab1@local.com", **personal_details)
+    personal_details = {}
+    xls = find_file(base_path="C:\\", filename="personal.xlsx")
+    data_frame = convert_xls_to_dict(xls)
+
+    # Information required to start the register test.
+    email = get_email_from_df(data_frame)
+    details = process_details(data_frame)
+    # Start a test instance
+    tester = WebAppTester()
+    tester.register(email=email, **details)
