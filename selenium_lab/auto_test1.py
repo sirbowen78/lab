@@ -124,7 +124,8 @@ class WebAppTester:
         driver.find_element_by_xpath('//*[@id="alias"]').send_keys(personal_details["address_ref"].capitalize())
         sleep(2)
         driver.find_element_by_xpath('/html/body/div/div[2]/div/div[3]/div/div/form/div[4]/button/span').click()
-
+        sleep(8)
+        driver.close()
 
 if __name__ == "__main__":
     personal_details = {}
