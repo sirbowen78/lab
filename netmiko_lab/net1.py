@@ -19,11 +19,11 @@ def get_device_config(mongo_url="mongodb://192.168.1.245:27017",
                       ip="127.0.0.1"):
     """
     Get cisco router's device config suitable for consumption by netmiko.ConnectHandler
-    :param mongo_url:
-    :param dbname:
-    :param table_name:
-    :param ip:
-    :return:
+    :param mongo_url: mongodb address
+    :param dbname: database name
+    :param table_name: collection name
+    :param ip: mgmt ip address of cisco router
+    :return: device configuration in dictionary.
     """
     client = MongoClient(mongo_url)
     return client[dbname][table_name].find_one({"ip": ip}, {"_id": 0})
@@ -34,9 +34,9 @@ def config_ospf(netmiko_connector, j2env, **ospf_config):
     Use the ospf.j2 template, fill up the ospf_config info,
     and send the configuration set.
     :param netmiko_connector:
-    :param j2env:
-    :param ospf_config:
-    :return:
+    :param j2env: jinja2 environment object
+    :param ospf_config: ospf configuration in dictionary
+    :return: output of the commands, for display in console with print function.
     """
     template = j2env.get_template("ospf.j2")
     config = template.render(**ospf_config)
@@ -46,8 +46,16 @@ def config_ospf(netmiko_connector, j2env, **ospf_config):
 
 
 def config_intf(netmiko_connector, j2env, **intf_config):
+    """
+    Interface configuration of cisco router.
+    :param netmiko_connector: netmiko connector object
+    :param j2env: jinja2 environment object
+    :param intf_config: interface configuration in dictionary
+    :return: output of commands, for display in console with print function.
+    """
     template = j2env.get_template("intf.j2")
     config = template.render(**intf_config)
+    # Try to remove heading spaces
     return netmiko_connector.send_config_set([cmd.strip(' ') for cmd in config.splitlines()])
 
 
@@ -59,18 +67,26 @@ def enable_mode(netmiko_connector):
 
 def config_router(device_config, config_what=None, **router_config):
     """
-    :param config_what:
-    :param device_config:
-    :param router_config:
-    :return:
+    :param config_what: what to configure
+    :param device_config: device info for netmiko connecthandler
+    :param router_config: router configuration in dictionary
+    :return: None
     """
     with ConnectHandler(**device_config) as conn:
         env = init_j2_template("templates")
+        # need to enter enable mode because send_config_set does not do enable.
         enable_mode(conn)
         if config_what.lower() == "ospf":
+            # configure ospf
             print(config_ospf(conn, env, **router_config))
         elif config_what.lower() == "intf":
+            # configure interface
             print(config_intf(conn, env, **router_config))
+        elif "remove" in config_what.lower() or "no" in config_what.lower():
+            remove_what = config_what.split(".")
+            if "loopback" in remove_what[1]:
+                print(conn.send_config_set([f"no interface {remove_what[-1]}"]))
+        # save configuration (write memory)
         conn.save_config()
 
 
@@ -110,16 +126,29 @@ def refresh_collection(collection, interface_result):
 
 
 def get_interface_brief(**device_config):
+    """
+    Get the result of show ip int brief for cisco ios based routers.
+    :param device_config: device info required by netmiko
+    :return: result of the cisco command.
+    """
     with ConnectHandler(**device_config) as conn:
         result = conn.send_command("show ip int brief", use_textfsm=True)
     return result
 
 
 if __name__ == "__main__":
+    from time import sleep
+
+    client = MongoClient("mongodb://192.168.1.245:27017")
+    # Demonstration on how to use the function.
+
+    # Get the r1 router device information from mongodb
     r1_device_config = get_device_config(dbname="network", table_name="devices", ip="192.168.1.215")
 
+    # Get the r2 router device information from mongodb
     r2_device_config = get_device_config(dbname="network", table_name="devices", ip="192.168.1.232")
 
+    # ospf configuration for r1
     r1_ospf_config = dict(
         process_id=1,
         router_id="1.1.1.1",
@@ -130,6 +159,7 @@ if __name__ == "__main__":
         lo_id=1
     )
 
+    # ospf configuration for r2
     r2_ospf_config = dict(
         process_id=1,
         router_id="2.2.2.2",
@@ -140,22 +170,42 @@ if __name__ == "__main__":
         lo_id=2
     )
 
-    intf_config = {
-        "intf_id": "Ethernet0/3",
-        #"desc": "This is a test description",
-        "ipaddr": "",
-        #"netmask": "255.255.255.0",
-        "up": False
+    # interface configuration for r1 router.
+    r1_intf_config = {
+        "intf_id": "loopback4",
+        # "desc": "This is a test description",
+        "ipaddr": "4.4.4.4",
+        # "netmask": "255.255.255.0",
+        "up": True
     }
 
+    # Usage 1: Configure loopback4 and update mongodb
+    config_router(r1_device_config, config_what="intf", **r1_intf_config)
     r1_result = get_interface_brief(**r1_device_config)
-    client = MongoClient("mongodb://192.168.1.245:27017")
-
     r1_table = client["network"]["R1"]
     refresh_collection(r1_table, r1_result)
 
+    # Usage 2: remove loopback4 and update mongodb
+    config_router(r1_device_config, config_what="no.loopback4")
+    r1_result = get_interface_brief(**r1_device_config)
+    r1_table = client["network"]["R1"]
+    refresh_collection(r1_table, r1_result)
+
+    # Update R2 router interface in mongodb
     r2_result = get_interface_brief(**r2_device_config)
     r2_table = client["network"]["R2"]
     refresh_collection(r2_table, r2_result)
 
-    config_router(r1_device_config, config_what="intf", **intf_config)
+    # Usage 3: Configure ospf and interface and update mongodb
+    config_router(r1_device_config, config_what="ospf", **r1_ospf_config)
+    sleep(5)
+    r1_result = get_interface_brief(**r1_device_config)
+    r1_table = client["network"]["R2"]
+    refresh_collection(r1_table, r1_result)
+
+    # Usage 4: Configure ospf and interface and update mongodb
+    config_router(r2_device_config, config_what="ospf", **r2_ospf_config)
+    sleep(5)
+    r2_result = get_interface_brief(**r2_device_config)
+    r2_table = client["network"]["R2"]
+    refresh_collection(r2_table, r2_result)
