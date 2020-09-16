@@ -1,0 +1,14 @@
+router ospf {{ process_id }}
+router-id {{ router_id }}
+passive-interface default
+no passive-interface {{ intf_id }}
+network {{ ipv4_addr }} 0.0.0.0 area {{ area_id }}
+network {{ router_id }} 0.0.0.0 area {{ area_id }}
+exit
+interface {{ intf_id }}
+no shutdown
+ip address {{ ipv4_addr }} {{ netmask }}
+exit
+interface loopback{{ lo_id }}
+ip address {{ router_id }} 255.255.255.255
+exit
