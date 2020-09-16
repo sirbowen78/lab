@@ -1,0 +1,16 @@
+interface {{ intf_id }}
+{% if desc is defined %}
+description {{ desc }}
+{% endif %}
+{% if ipaddr is defined and netmask is defined%}
+ip address {{ ipaddr }} {{ netmask }}
+    {% elif ipaddr is defined and ipaddr|length == 0 %}
+    no ip address
+    {% elif ipaddr is defined and netmask is undefined%}
+    ip address {{ ipaddr }} 255.255.255.255
+{% endif %}
+{% if up is sameas true %}
+no shutdown
+{% else %}
+shutdown
+{% endif %}
