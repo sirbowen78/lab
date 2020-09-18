@@ -4,7 +4,6 @@ from functools import wraps
 from jinja2 import Environment, FileSystemLoader
 from ipaddress import IPv4Network
 
-
 def mongodb_table(mongo_addr, dbname, tablename):
     client = MongoClient(mongo_addr)
     return client[dbname][tablename]
@@ -67,8 +66,21 @@ def inverse_mask(netmask):
 
 def cidr_to_netmask(subnet):
     """
-    This function uses the ipaddress.IPv4Network method to convert the /cidr to
-    proper netmask
+    This function converts the /cidr to proper netmask.
+    Reference: https://gist.github.com/nboubakr/4344773
+    Manual method:
+    mask = [0, 0, 0, 0]
+    net_id, cidr = subnet.split("/")
+    for i in range(int(cidr)):
+        mask[i//8] = mask[i//8] + (1 << (7 - i % 8))
+    netmask = [str(i) for i in mask]
+    return net_id, ".".join(netmask)
+    This manual method is good for cidr to netmask but there is no checks if the net_id within
+    the network bound by cidr.
+
+    By using ipaddress module is the easiest and recommended,
+    because ipaddress.IPv4Network checks if the network id is a valid id
+    within the range of its cidr.
     :param subnet: must be a subnet/cidr eg. 192.168.1.0/26
     :return: tuple of network id and netmask
     """
@@ -155,4 +167,3 @@ r2_ospf = dict(
     lo_id=2,
     area_id=0
 )
-print(netmask_to_cidr("255.255.255.240"))
