@@ -107,6 +107,7 @@ class CiscoIOS:
     """
     Only for Cisco IOS XE.
     """
+
     def __init__(self, ip="192.168.1.1", username="admin", password="password", secret=None):
         """
         information for netmiko to connect to cisco ios based router.
@@ -186,3 +187,23 @@ class CiscoIOS:
         template = config_template(template_file="named_acl_extended.j2")
         config = template.render(**extended_acl_config)
         return self.session.send_config_set(config.splitlines())
+
+    @config
+    def apply_acl(self, **apply_acl):
+        """
+        This is to apply acl in interface.
+        :param apply_acl:
+        :return: command line ouput
+        """
+        template = config_template(template_file="apply_acl.j2")
+        config = template.render(**apply_acl)
+        return self.session.send_config_set(config.splitlines())
+
+    @config
+    def default_intf(self, intf_id):
+        """
+        Reset interface to default.
+        :param intf_id:
+        :return: command line output
+        """
+        return self.session.send_config_set([f"default interface {intf_id}"])
