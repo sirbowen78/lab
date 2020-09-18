@@ -4,6 +4,7 @@ from functools import wraps
 from jinja2 import Environment, FileSystemLoader
 from ipaddress import IPv4Network
 
+
 def mongodb_table(mongo_addr, dbname, tablename):
     client = MongoClient(mongo_addr)
     return client[dbname][tablename]
@@ -14,13 +15,13 @@ def config_template(template_path="templates", template_file=None):
     return Environment(loader=loader).get_template(template_file)
 
 
-# Reference on how to do decorator on class instance methods.
 def show(fn):
     """
     This decorator ensure enable mode before fn, and disconnect after fn.
     :param fn: function which has at least self as argument.
     :return: output of fn, and the wrapper.
     """
+
     @wraps(fn)
     def wrapper(self, *args, **kwargs):
         if not self.session.check_enable_mode():
@@ -41,6 +42,7 @@ def config(fn):
     :return: output of fn, and the wrapper function so that the result is return
     and not eaten by decorator.
     """
+
     @wraps(fn)
     def wrapper(self, *args, **kwargs):
         if not self.session.check_enable_mode():
@@ -98,12 +100,21 @@ def netmask_to_cidr(netmask):
     :param netmask: eg. 255.255.255.240
     :return: string of cidr eg. 28
     """
-    mask_list = [str(bin(int(octet))).count("1") for octet in netmask.split(".")]
-    return sum(mask_list)
+    return sum([str(bin(int(octet))).count("1") for octet in netmask.split(".")])
 
 
 class CiscoIOS:
+    """
+    Only for Cisco IOS XE.
+    """
     def __init__(self, ip="192.168.1.1", username="admin", password="password", secret=None):
+        """
+        information for netmiko to connect to cisco ios based router.
+        :param ip: management ip address of router
+        :param username: username of router
+        :param password: password of router
+        :param secret: optional, this is the enable password of router.
+        """
         self.ip = ip
         self.username = username
         self.password = password
@@ -120,6 +131,10 @@ class CiscoIOS:
 
     @show
     def show_intf_brief(self):
+        """
+        show router interface summary.
+        :return: command line output
+        """
         return self.session.send_command("show ip int brief", use_textfsm=True)
 
     @show
@@ -128,6 +143,11 @@ class CiscoIOS:
 
     @config
     def set_hostname(self, hostname):
+        """
+        Modify hostname of router.
+        :param hostname: desired name for the router
+        :return: command line output
+        """
         return self.session.send_config_set([f"hostname {hostname}"])
 
     @config
@@ -138,32 +158,31 @@ class CiscoIOS:
 
     @config
     def remove_loopback(self, loop_id=0):
+        """
+        Remove loopback interface
+        :param loop_id: the loopback interface id to remove.
+        :return: command line output
+        """
         return self.session.send_config_set([f"no interface loopback{loop_id}"])
 
     @config
     def set_ospf(self, **ospf_config):
+        """
+        Configures the ospf.
+        :param ospf_config: ospf configuration data
+        :return: command line output
+        """
         template = config_template(template_file="ospf.j2")
         config = template.render(**ospf_config)
         return self.session.send_config_set(config.splitlines())
 
-
-r1 = CiscoIOS(ip="192.168.1.209", username="cyruslab", password="cisco123", secret="cisco123")
-r2 = CiscoIOS(ip="192.168.1.229", username="cyruslab", password="cisco123", secret="cisco123")
-r1_ospf = dict(
-    process_id=1,
-    router_id="1.1.1.1",
-    intf_id="Ethernet0/0",
-    ipv4_addr="10.0.0.1",
-    netmask="255.255.255.252",
-    lo_id=1,
-    area_id=0
-)
-r2_ospf = dict(
-    process_id=1,
-    router_id="2.2.2.2",
-    intf_id="Ethernet0/0",
-    ipv4_addr="10.0.0.2",
-    netmask="255.255.255.252",
-    lo_id=2,
-    area_id=0
-)
+    @config
+    def acl_insert_one(self, **extended_acl_config):
+        """
+        Insert one entry to extended acl.
+        :param extended_acl_config:
+        :return: command line output
+        """
+        template = config_template(template_file="named_acl_extended.j2")
+        config = template.render(**extended_acl_config)
+        return self.session.send_config_set(config.splitlines())

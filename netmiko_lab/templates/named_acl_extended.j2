@@ -1,0 +1,45 @@
+ip access-list extended {{ acl_name }}
+{% if remark is defined and remark|length > 0 %}
+remark {{ remark }}
+{% endif %}
+{% if proto == "ip" %}
+{% if src_host is defined and dst_host is defined %}
+{{ action }} ip host {{ src_host }} host {{ dst_host }}
+{% elif src_host is defined and dst_net is defined %}
+{{ action }} ip host {{ src_host }} {{ dst_net }} {{ dst_wildcard }}
+{% elif src_net is defined and dst_host is defined %}
+{{ action }} ip {{ src_net }} {{ src_wildcard }} host {{ dst_host }}
+{% elif src_net is defined and dst_net is defined %}
+{{ action }} ip {{ src_net }} {{ src_wildcard }} {{ dst_net }} {{ dst_wildcard }}
+{% endif %}
+{% elif proto == "tcp" %}
+{% if src_host is defined and dst_host is defined %}
+{{ action }} tcp host {{ src_host }} host {{ dst_host }} eq {{ eq }}
+{% elif src_host is defined and dst_net is defined %}
+{{ action }} tcp host {{ src_host }} {{ dst_net }} {{ dst_wildcard }} eq {{ eq }}
+{% elif src_net is defined and dst_host is defined %}
+{{ action }} tcp {{ src_net }} {{ src_wildcard }} host {{ dst_host }} eq {{ eq }}
+{% elif src_net is defined and dst_net is defined %}
+{{ action }} tcp {{ src_net }} {{ src_wildcard }} {{ dst_net }} {{ dst_wildcard }} eq {{ eq }}
+{% endif %}
+{% elif proto == "udp" %}
+{% if src_host is defined and dst_host is defined %}
+{{ action }} udp host {{ src_host }} host {{ dst_host }} eq {{ eq }}
+{% elif src_host is defined and dst_net is defined %}
+{{ action }} udp host {{ src_host }} {{ dst_net }} {{ dst_wildcard }} eq {{ eq }}
+{% elif src_net is defined and dst_host is defined %}
+{{ action }} udp {{ src_net }} {{ src_wildcard }} host {{ dst_host }} eq {{ eq }}
+{% elif src_net is defined and dst_net is defined %}
+{{ action }} udp {{ src_net }} {{ src_wildcard }} {{ dst_net }} {{ dst_wildcard }} eq {{ eq }}
+{% endif %}
+{% elif proto == "icmp" %}
+{% if src_host is defined and dst_host is defined %}
+{{ action }} icmp host {{ src_host }} host {{ dst_host }}
+{% elif src_host is defined and dst_net is defined %}
+{{ action }} icmp host {{ src_host }} {{ dst_net }} {{ dst_wildcard }}
+{% elif src_net is defined and dst_host is defined %}
+{{ action }} icmp {{ src_net }} {{ src_wildcard }} host {{ dst_host }}
+{% elif src_net is defined and dst_net is defined %}
+{{ action }} icmp {{ src_net }} {{ src_wildcard }} {{ dst_net }} {{ dst_wildcard }}
+{% endif %}
+{% endif %}
