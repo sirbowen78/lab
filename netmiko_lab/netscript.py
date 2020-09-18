@@ -6,8 +6,36 @@ from ipaddress import IPv4Network
 
 
 def mongodb_table(mongo_addr, dbname, tablename):
+    """
+    Get the db cursor
+    :param mongo_addr: eg. mongdb://192.168.1.245:27017
+    :param dbname: database name
+    :param tablename: collection name
+    :return: mongodb collection object
+    """
     client = MongoClient(mongo_addr)
     return client[dbname][tablename]
+
+
+def mongodb_insert_many(db_cursor, data_list):
+    """
+    Insert many rows in collection/table
+    :param db_cursor: mongodb collection object
+    :param data_list: list of dictionary data.
+    :return:
+    """
+    db_cursor.insert_many(data_list)
+
+
+def mongdb_find_one(db_cursor, filter, exclude):
+    """
+    Return the first found data from mongodb.
+    :param db_cursor:
+    :param filter: must be dictionary like eg. {"hostname": "r1"}
+    :param exclude: must be dictionary like eg. {"_id": 0, "hostname": 0}
+    :return: data
+    """
+    return db_cursor.find_one(filter, exclude)
 
 
 def config_template(template_path="templates", template_file=None):
